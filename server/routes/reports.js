@@ -1,146 +1,75 @@
 const express = require("express");
+const supabase = require("../utils/supabase");
 const { calculateScore, mergeFlags } = require("../utils/scoreCalculator");
 
 const router = express.Router();
 
 /* ───────────────────────────────────────────
-   In-memory store (swap with Supabase later)
-   ─────────────────────────────────────────── */
-let reports = [];
-let nextId = 1;
-
-// Seed some demo data so the UI isn't empty on first load
-const SEED = [
-  {
-    company_name: "QuickHire Solutions",
-    platform: "LinkedIn",
-    description:
-      "Offered a remote data-entry internship but asked for ₹2,000 registration fee before any interview. Sent a generic offer letter with no company branding.",
-    proof_link: "https://example.com/proof1",
-    flags: ["asked_for_money", "no_interview", "fake_offer_letter"],
-    report_count: 3,
-  },
-  {
-    company_name: "BrightFuture Interns",
-    platform: "Internshala",
-    description:
-      "Required unpaid full-time work for 3 months with vague promises of a stipend. No formal contract provided.",
-    proof_link: "https://example.com/proof2",
-    flags: ["unpaid_work", "no_interview"],
-    report_count: 2,
-  },
-  {
-    company_name: "NovaTech Global",
-    platform: "Naukri",
-    description:
-      "Collected Aadhaar and PAN details during application. No interview conducted, and the company website is a single-page template.",
-    proof_link: "https://example.com/proof3",
-    flags: ["data_theft", "no_interview"],
-    report_count: 1,
-  },
-  {
-    company_name: "SkillBridge Academy",
-    platform: "LinkedIn",
-    description:
-      "Paid training program disguised as an internship. Charged ₹5,000 for 'certification' before starting.",
-    proof_link: "https://example.com/proof4",
-    flags: ["asked_for_money"],
-    report_count: 1,
-  },
-  {
-    company_name: "CloudNine Ventures",
-    platform: "Indeed",
-    description:
-      "Sent an offer letter from a Gmail address. Never conducted any interview. No online presence for the company.",
-    proof_link: "https://example.com/proof5",
-    flags: ["fake_offer_letter", "no_interview", "asked_for_money"],
-    report_count: 4,
-  },
-  {
-    company_name: "DataPulse Analytics",
-    platform: "Internshala",
-    description:
-      "Promised a stipend after a 'trial period' of 2 months. Trial involved real client work with no compensation.",
-    proof_link: "https://example.com/proof6",
-    flags: ["unpaid_work"],
-    report_count: 1,
-  },
-];
-
-// Initialize seed data
-SEED.forEach((item) => {
-  const isDuplicate = item.report_count > 1;
-  const { score, level } = calculateScore(item.flags, isDuplicate);
-  reports.push({
-    id: nextId++,
-    ...item,
-    risk_score: Math.min(score + (item.report_count - 1) * 5, 100), // slight bump per extra report
-    risk_level: level,
-    created_at: new Date().toISOString(),
-  });
-});
-// Re-compute levels after manual score adjustment
-reports.forEach((r) => {
-  if (r.risk_score <= 30) r.risk_level = "low";
-  else if (r.risk_score <= 60) r.risk_level = "suspicious";
-  else r.risk_level = "high";
-});
-
-/* ───────────────────────────────────────────
    GET /api/reports
    Query params: search, risk, platform, sort
    ─────────────────────────────────────────── */
-router.get("/", (req, res) => {
-  let results = [...reports];
-
-  // Search by company name
+router.get("/", async (req, res) => {
   const { search, risk, platform, sort } = req.query;
+
+  let query = supabase.from("reports").select("*");
+
+  // Search by company name (ilike for case-insensitive partial match)
   if (search) {
-    const q = search.toLowerCase();
-    results = results.filter((r) =>
-      r.company_name.toLowerCase().includes(q)
-    );
+    query = query.ilike("company_name", `%${search}%`);
   }
 
   // Filter by risk level
   if (risk && risk !== "all") {
-    results = results.filter((r) => r.risk_level === risk);
+    query = query.eq("risk_level", risk);
   }
 
   // Filter by platform
   if (platform && platform !== "all") {
-    results = results.filter(
-      (r) => r.platform.toLowerCase() === platform.toLowerCase()
-    );
+    query = query.ilike("platform", platform);
   }
 
   // Sorting
   if (sort === "highest_risk") {
-    results.sort((a, b) => b.risk_score - a.risk_score);
+    query = query.order("risk_score", { ascending: false });
   } else if (sort === "most_reported") {
-    results.sort((a, b) => b.report_count - a.report_count);
+    query = query.order("report_count", { ascending: false });
   } else {
     // Default: newest first
-    results.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    query = query.order("created_at", { ascending: false });
   }
 
-  res.json({ data: results, count: results.length });
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("Supabase GET error:", error);
+    return res.status(500).json({ error: "Failed to fetch reports" });
+  }
+
+  res.json({ data, count: data.length });
 });
 
 /* ───────────────────────────────────────────
    GET /api/reports/:id
    ─────────────────────────────────────────── */
-router.get("/:id", (req, res) => {
-  const report = reports.find((r) => r.id === parseInt(req.params.id));
-  if (!report) return res.status(404).json({ error: "Report not found" });
-  res.json({ data: report });
+router.get("/:id", async (req, res) => {
+  const { data, error } = await supabase
+    .from("reports")
+    .select("*")
+    .eq("id", req.params.id)
+    .single();
+
+  if (error || !data) {
+    return res.status(404).json({ error: "Report not found" });
+  }
+
+  res.json({ data });
 });
 
 /* ───────────────────────────────────────────
    POST /api/reports
    Body: { company_name, platform, description, proof_link, flags, force }
    ─────────────────────────────────────────── */
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   const { company_name, platform, description, proof_link, flags, force } =
     req.body;
 
@@ -151,10 +80,14 @@ router.post("/", (req, res) => {
       .json({ error: "company_name and platform are required." });
   }
 
-  // Check for duplicate
-  const existing = reports.find(
-    (r) => r.company_name.toLowerCase() === company_name.toLowerCase()
-  );
+  // Check for existing report (case insensitive match on company name)
+  const { data: existingData, error: searchError } = await supabase
+    .from("reports")
+    .select("*")
+    .ilike("company_name", company_name)
+    .maybeSingle();
+
+  const existing = existingData;
 
   if (existing && !force) {
     return res.status(409).json({
@@ -166,48 +99,69 @@ router.post("/", (req, res) => {
 
   if (existing && force) {
     // Merge into existing report
-    existing.flags = mergeFlags(existing.flags, flags || []);
-    existing.report_count += 1;
-    if (description) {
-      existing.description = description; // latest description wins
-    }
-    if (proof_link) {
-      existing.proof_link = proof_link;
-    }
+    const newFlags = mergeFlags(existing.flags || [], flags || []);
+    const newReportCount = existing.report_count + 1;
+    
+    // Description and proof link update: latest wins, unless empty
+    const newDescription = description || existing.description;
+    const newProofLink = proof_link || existing.proof_link;
 
-    const { score, level } = calculateScore(existing.flags, true);
+    const { score, level } = calculateScore(newFlags, true);
+    
     // Add a small bump per additional report, capped at 100
-    existing.risk_score = Math.min(
-      score + (existing.report_count - 1) * 5,
-      100
-    );
-    existing.risk_level =
-      existing.risk_score <= 30
-        ? "low"
-        : existing.risk_score <= 60
-        ? "suspicious"
-        : "high";
+    const riskScore = Math.min(score + (newReportCount - 1) * 5, 100);
+    const riskLevel =
+      riskScore <= 30 ? "low" : riskScore <= 60 ? "suspicious" : "high";
 
-    return res.json({ data: existing, merged: true });
+    const { data: updatedData, error: updateError } = await supabase
+      .from("reports")
+      .update({
+        flags: newFlags,
+        report_count: newReportCount,
+        description: newDescription,
+        proof_link: newProofLink,
+        risk_score: riskScore,
+        risk_level: riskLevel
+      })
+      .eq("id", existing.id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error("Supabase UPDATE error:", updateError);
+      return res.status(500).json({ error: "Failed to update report" });
+    }
+
+    return res.json({ data: updatedData, merged: true });
   }
 
   // New report
-  const { score, level } = calculateScore(flags || [], false);
-  const report = {
-    id: nextId++,
+  const safeFlags = flags || [];
+  const { score, level } = calculateScore(safeFlags, false);
+  
+  const newReport = {
     company_name,
     platform,
     description: description || "",
     proof_link: proof_link || "",
-    flags: flags || [],
+    flags: safeFlags,
     risk_score: score,
     risk_level: level,
-    report_count: 1,
-    created_at: new Date().toISOString(),
+    report_count: 1
   };
 
-  reports.unshift(report); // Add to front (newest first)
-  res.status(201).json({ data: report });
+  const { data: insertedData, error: insertError } = await supabase
+    .from("reports")
+    .insert([newReport])
+    .select()
+    .single();
+
+  if (insertError) {
+    console.error("Supabase INSERT error:", insertError);
+    return res.status(500).json({ error: "Failed to create report" });
+  }
+
+  res.status(201).json({ data: insertedData });
 });
 
 module.exports = router;
