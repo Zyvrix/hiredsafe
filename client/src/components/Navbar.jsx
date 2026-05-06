@@ -1,9 +1,7 @@
-import { Link, useLocation } from 'react-router-dom';
-import { ShieldCheck, Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ShieldCheck } from 'lucide-react';
 
 export default function Navbar() {
-  const { pathname } = useLocation();
-
   return (
     <nav
       style={{
@@ -12,12 +10,10 @@ export default function Navbar() {
         zIndex: 50,
         background: 'var(--bg-base)',
         borderBottom: '1px solid var(--border)',
-        borderBottom: '1px solid var(--border)',
-        boxShadow: '0 1px 0 rgba(99,102,241,0.08)',
       }}
     >
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 56 }}>
 
           {/* Logo */}
           <Link
@@ -27,21 +23,21 @@ export default function Navbar() {
           >
             <div
               style={{
-                width: 34,
-                height: 34,
-                borderRadius: 9,
+                width: 32,
+                height: 32,
+                borderRadius: 8,
                 background: 'var(--brand)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(79,110,247,0.3)',
+                boxShadow: '0 2px 8px rgba(232,93,63,0.25)',
               }}
             >
-              <ShieldCheck size={18} color="white" strokeWidth={2.5} />
+              <ShieldCheck size={17} color="white" strokeWidth={2.5} />
             </div>
             <span
               style={{
-                fontSize: '1.0625rem',
+                fontSize: '1.05rem',
                 fontWeight: 700,
                 letterSpacing: '-0.03em',
                 color: 'var(--text-primary)',
@@ -55,15 +51,18 @@ export default function Navbar() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
               onClick={() => document.dispatchEvent(new Event('openManageReport'))}
-              className="btn-ghost"
               style={{
                 fontSize: '0.875rem',
-                fontWeight: 600,
+                fontWeight: 500,
                 color: 'var(--text-secondary)',
-                border: '1px solid transparent',
+                border: 'none',
                 background: 'transparent',
                 padding: '8px 16px',
+                cursor: 'pointer',
+                transition: 'color 0.15s',
               }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
             >
               Manage Report
             </button>
@@ -71,7 +70,12 @@ export default function Navbar() {
               to="/report"
               id="nav-report"
               className="btn-primary"
-              style={{ fontSize: '0.875rem', padding: '8px 20px', textDecoration: 'none' }}
+              style={{
+                fontSize: '0.875rem',
+                padding: '8px 20px',
+                textDecoration: 'none',
+                borderRadius: 8,
+              }}
             >
               + Report
             </Link>
