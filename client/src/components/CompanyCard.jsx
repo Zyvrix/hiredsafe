@@ -1,152 +1,126 @@
-import RiskBadge from './RiskBadge';
-import { ExternalLink, Users } from 'lucide-react';
+import { useState } from 'react';
+import { ExternalLink, MapPin, MessageCircle, Share2, ChevronUp } from 'lucide-react';
+import { upvoteReport } from '../services/api';
 
-const FLAG_LABELS = {
-  asked_for_money:  'Asked for Money',
-  fake_offer_letter: 'Fake Offer Letter',
-  no_interview:     'No Interview',
-  unpaid_work:      'Unpaid Work',
-  data_theft:       'Data Theft',
+const RISK_STYLES = {
+  high: { bg: '#fee2e2', color: '#b91c1c', label: 'HIGH RISK' },
+  suspicious: { bg: '#fef3c7', color: '#b45309', label: 'SUSPICIOUS' },
+  low: { bg: '#d1fae5', color: '#047857', label: 'UNCONFIRMED' }
 };
 
-export default function CompanyCard({ report, style }) {
-  const {
-    company_name,
-    platform,
-    description,
-    risk_score,
-    risk_level,
-    flags,
-    report_count,
-    proof_link,
-  } = report;
+export default function CompanyCard({ report }) {
+  const [upvotes, setUpvotes] = useState(report.upvotes || 0);
+  const [upvoted, setUpvoted] = useState(false);
+
+  const handleUpvote = async () => {
+    if (upvoted) return;
+    try {
+      setUpvoted(true);
+      setUpvotes(p => p + 1);
+      await upvoteReport(report.id);
+    } catch (err) {
+      setUpvoted(false);
+      setUpvotes(p => p - 1);
+      console.error(err);
+    }
+  };
+
+  const risk = RISK_STYLES[report.risk_level] || RISK_STYLES.low;
+
+  // Formatting date logic
+  const dateStr = report.created_at ? new Date(report.created_at).toLocaleDateString() : 'recently';
 
   return (
-    <div
-      className="card"
-      style={{ padding: '20px 22px', cursor: 'default', ...style }}
-    >
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h3
-            style={{
-              fontSize: '0.9375rem',
-              fontWeight: 700,
-              color: 'var(--text-primary)',
-              letterSpacing: '-0.02em',
-              marginBottom: 5,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {company_name}
-          </h3>
-          <span
-            style={{
-              display: 'inline-block',
-              fontSize: '0.6875rem',
-              fontWeight: 600,
-              color: 'var(--text-muted)',
-              background: 'var(--bg-muted)',
-              padding: '2px 8px',
-              borderRadius: 4,
-              border: '1px solid var(--border)',
-            }}
-          >
-            {platform}
-          </span>
-        </div>
-        <RiskBadge level={risk_level} score={risk_score} />
+    <div className="card" style={{ padding: '20px', display: 'flex', gap: 16 }}>
+      
+      {/* Upvote Column */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <button 
+          onClick={handleUpvote}
+          style={{ 
+            width: 36, height: 36, 
+            borderRadius: 8, 
+            border: `1px solid ${upvoted ? 'var(--brand)' : 'var(--border)'}`, 
+            background: upvoted ? 'var(--brand-light)' : 'var(--bg-muted)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: upvoted ? 'default' : 'pointer',
+            transition: 'all 0.15s',
+            color: upvoted ? 'var(--brand)' : 'var(--text-secondary)'
+          }}
+        >
+          <ChevronUp size={20} strokeWidth={upvoted ? 3 : 2} />
+        </button>
+        <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+          {upvotes}
+        </span>
       </div>
 
-      {/* Description */}
-      <p
-        style={{
-          fontSize: '0.8125rem',
-          color: 'var(--text-secondary)',
-          lineHeight: 1.6,
-          marginBottom: 14,
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden',
-        }}
-      >
-        {description || 'No description provided.'}
-      </p>
-
-      {/* Flags */}
-      {(flags || []).length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-          {(flags || []).map((flag) => (
-            <span
-              key={flag}
-              style={{
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                color: 'var(--brand)',
-                background: 'var(--brand-light)',
-                border: '1px solid rgba(79,110,247,0.18)',
-                padding: '2px 8px',
-                borderRadius: 4,
-              }}
-            >
-              {FLAG_LABELS[flag] || flag}
-            </span>
-          ))}
+      {/* Content Column */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+            {report.company_name}
+          </h3>
+          <span style={{ 
+            fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em',
+            padding: '2px 6px', borderRadius: 4,
+            background: risk.bg, color: risk.color, border: `1px solid ${risk.color}30`
+          }}>
+            {risk.label}
+          </span>
         </div>
-      )}
 
-      {/* Footer */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingTop: 12,
-          borderTop: '1px solid var(--border)',
-        }}
-      >
-        <div>
-          {report_count > 1 && (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                color: 'var(--risk-suspicious)',
-              }}
-            >
-              <Users size={12} />
-              {report_count} reports
-            </span>
+        {/* Description */}
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: '0 0 16px 0' }}>
+          {report.description || 'No description provided.'}
+        </p>
+
+        {/* Meta Info */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+          {report.location && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              <MapPin size={12} color="#f43f5e" />
+              {report.location}
+            </div>
           )}
+          
+          {report.proof_link && (
+            <a 
+              href={report.proof_link} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'none' }}
+            >
+              <ExternalLink size={12} />
+              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: 200 }}>
+                {report.proof_link.replace(/^https?:\/\//, '')}
+              </span>
+            </a>
+          )}
+
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            {dateStr}
+          </div>
         </div>
-        {proof_link && (
-          <a
-            href={proof_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              color: 'var(--brand)',
-              textDecoration: 'none',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
-            onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
-          >
-            <ExternalLink size={12} />
-            View Proof
-          </a>
-        )}
+
+        {/* Footer actions */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+            <MessageCircle size={14} />
+            {report.report_count > 1 ? `${report.report_count} reports` : '1 report'}
+          </div>
+          
+          <button style={{ 
+            display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem', 
+            color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' 
+          }}>
+            <Share2 size={14} />
+            Share
+          </button>
+        </div>
+
       </div>
     </div>
   );

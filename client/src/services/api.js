@@ -16,7 +16,22 @@ export async function getReport(id) {
 }
 
 export async function createReport(report, force = false) {
-  const { data } = await api.post('/reports', { ...report, force });
+  const { data, secret_code } = await api.post('/reports', { ...report, force });
+  return { data, secret_code };
+}
+
+export async function upvoteReport(id) {
+  const { data } = await api.post(`/reports/${id}/upvote`);
+  return data;
+}
+
+export async function verifySecretCode(secret_code) {
+  const { data } = await api.post('/reports/verify-code', { secret_code });
+  return data;
+}
+
+export async function deleteReport(id, secret_code) {
+  const { data } = await api.delete(`/reports/${id}`, { data: { secret_code } });
   return data;
 }
 

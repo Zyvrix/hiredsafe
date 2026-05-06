@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import ReportForm from './pages/ReportForm';
+import ManageReportModal from './components/ManageReportModal';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/report" element={<ReportForm />} />
         </Routes>
+        <ManageReportModal />
       </div>
     </BrowserRouter>
   );

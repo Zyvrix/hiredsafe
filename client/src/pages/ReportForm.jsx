@@ -1,326 +1,245 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
-import DuplicateWarning from '../components/DuplicateWarning';
+import { Loader2, AlertTriangle, Paperclip, CheckCircle, Copy } from 'lucide-react';
 import { createReport } from '../services/api';
 
-const PLATFORMS = ['LinkedIn', 'Internshala', 'Naukri', 'Indeed', 'Other'];
-
-const RED_FLAGS = [
-  { key: 'asked_for_money',   label: 'Asked for money',          emoji: '💰', desc: 'Registration fees, equipment charges, etc.' },
-  { key: 'no_interview',      label: 'No interview conducted',   emoji: '🚫', desc: 'Offered a role without any screening' },
-  { key: 'fake_offer_letter', label: 'Fake offer letter',        emoji: '📄', desc: 'Generic or suspicious offer documentation' },
-  { key: 'data_theft',        label: 'Data / identity theft',    emoji: '🔓', desc: 'Asked for Aadhaar, PAN, bank details early' },
-  { key: 'unpaid_work',       label: 'Unpaid work',              emoji: '⏳', desc: 'No compensation for extended trial period' },
+const CATEGORIES = [
+  { id: 'fake_offer_letter', label: 'Fake offer letter', icon: '📄' },
+  { id: 'upfront_payment', label: 'Upfront payment', icon: '💸' },
+  { id: 'data_theft', label: 'Data theft', icon: '🔓' },
+  { id: 'no_pay_ghosted', label: 'No pay / ghosted', icon: '🚫' },
+  { id: 'training_fee_scam', label: 'Training fee scam', icon: '📚' },
+  { id: 'phishing_malware', label: 'Phishing / malware', icon: '🎣' },
+  { id: 'fake_company', label: 'Fake company', icon: '🏢' },
+  { id: 'other', label: 'Other', icon: '⚠️' }
 ];
 
-const RISK_WEIGHTS = { asked_for_money: 40, fake_offer_letter: 20, no_interview: 15, unpaid_work: 10, data_theft: 15 };
-
 export default function ReportForm() {
-  const navigate = useNavigate();
   const [form, setForm] = useState({
     company_name: '',
-    platform: 'LinkedIn',
+    location: '',
+    platform: '',
+    risk_level: 'high',
     description: '',
     proof_link: '',
     flags: [],
   });
   const [submitting, setSubmitting] = useState(false);
-  const [success,    setSuccess]    = useState(false);
-  const [duplicate,  setDuplicate]  = useState(null);
+  const [success, setSuccess] = useState(false);
+  const [secretCode, setSecretCode] = useState('');
 
   const updateField = (field, value) => setForm((p) => ({ ...p, [field]: value }));
 
-  const toggleFlag = (flag) =>
+  const toggleCategory = (id) => {
     setForm((p) => ({
       ...p,
-      flags: p.flags.includes(flag) ? p.flags.filter((f) => f !== flag) : [...p.flags, flag],
+      flags: p.flags.includes(id) ? p.flags.filter((f) => f !== id) : [...p.flags, id],
     }));
+  };
 
-  const handleSubmit = async (e, force = false) => {
-    if (e) e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setSubmitting(true);
-    setDuplicate(null);
     try {
-      await createReport(form, force);
+      const { secret_code } = await createReport(form, true);
+      setSecretCode(secret_code);
       setSuccess(true);
-      setTimeout(() => navigate('/'), 2000);
     } catch (err) {
-      if (err.response?.status === 409) setDuplicate(err.response.data.existing);
-      else console.error('Submit error:', err);
+      console.error('Submit error:', err);
+      alert('Failed to submit report. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const score = Math.min(form.flags.reduce((s, f) => s + (RISK_WEIGHTS[f] || 0), 0), 100);
-  const level = score <= 30 ? 'low' : score <= 60 ? 'suspicious' : 'high';
-  const levelColors = { low: 'var(--risk-low)', suspicious: 'var(--risk-suspicious)', high: 'var(--risk-high)' };
-  const levelLabels = { low: 'Low Risk', suspicious: 'Suspicious', high: 'High Risk' };
+  const copyCode = () => {
+    navigator.clipboard.writeText(secretCode);
+    alert('Code copied to clipboard!');
+  };
 
   if (success) {
     return (
       <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="animate-scale-pop" style={{ textAlign: 'center', padding: 40 }}>
-          <div
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: '50%',
-              background: 'var(--risk-low-bg)',
-              border: '1px solid var(--risk-low-border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 20px',
-            }}
-          >
+        <div className="card animate-scale-pop" style={{ textAlign: 'center', padding: 40, maxWidth: 480, width: '100%' }}>
+          <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--risk-low-bg)', border: '1px solid var(--risk-low-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
             <CheckCircle size={32} color="var(--risk-low)" />
           </div>
-          <h2 style={{ fontSize: '1.375rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-primary)', marginBottom: 8 }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
             Report Submitted
           </h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            Thank you for helping keep the community safe. Redirecting…
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: 24 }}>
+            Thank you for helping keep the community safe. 
           </p>
+          
+          <div style={{ background: '#fff5eb', border: '1px solid #f5c09a', padding: 20, borderRadius: 8, marginBottom: 24, textAlign: 'left' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#d94b1f', fontWeight: 600, marginBottom: 8 }}>
+              <AlertTriangle size={18} />
+              Save your secret code
+            </div>
+            <p style={{ fontSize: '0.875rem', color: '#a04b28', marginBottom: 16 }}>
+              You will need this code to edit or delete your report in the future. We cannot recover it if lost.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1, background: '#fff', border: '1px solid #f5c09a', padding: '12px 16px', borderRadius: 6, fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '2px', textAlign: 'center' }}>
+                {secretCode}
+              </div>
+              <button onClick={copyCode} className="btn-ghost" style={{ border: '1px solid #f5c09a', background: '#fff' }}>
+                <Copy size={18} />
+              </button>
+            </div>
+          </div>
+
+          <a href="/" className="btn-primary" style={{ width: '100%', textDecoration: 'none' }}>
+            Return to Dashboard
+          </a>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-base)', padding: '48px 24px 80px' }}>
-      {duplicate && (
-        <DuplicateWarning
-          existing={duplicate}
-          onForce={() => handleSubmit(null, true)}
-          onCancel={() => setDuplicate(null)}
-        />
-      )}
+    <div style={{ minHeight: '100vh', padding: '40px 24px 80px', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ maxWidth: 600, width: '100%' }}>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 24 }}>
+          Report a company
+        </h1>
 
-      <div style={{ maxWidth: 600, margin: '0 auto' }}>
-
-        {/* Page Header */}
-        <div className="animate-fade-up" style={{ marginBottom: 32 }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '3px 10px',
-              borderRadius: 99,
-              background: 'var(--risk-high-bg)',
-              border: '1px solid var(--risk-high-border)',
-              marginBottom: 14,
-            }}
-          >
-            <AlertTriangle size={12} color="var(--risk-high)" strokeWidth={2.5} />
-            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--risk-high)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              Report a Scam
-            </span>
+        <div style={{ background: '#fff9f0', border: '1px solid #f2dbb3', borderRadius: 'var(--radius-md)', padding: '16px 20px', marginBottom: 24, display: 'flex', gap: 12 }}>
+          <AlertTriangle size={20} color="#d97706" style={{ flexShrink: 0, marginTop: 2 }} />
+          <div>
+            <h4 style={{ fontWeight: 600, color: '#92400e', marginBottom: 4 }}>Save your code — you won't get another chance</h4>
+            <p style={{ fontSize: '0.875rem', color: '#b45309', lineHeight: 1.5 }}>
+              After submitting, you'll receive a unique code. This is the <strong>only way</strong> to edit or delete your report. We don't store it and cannot recover it if lost.
+            </p>
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--text-primary)', marginBottom: 8 }}>
-            Submit a Company Report
-          </h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            Help protect others by reporting suspicious internship or job postings. All reports are reviewed by the community.
-          </p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="animate-fade-up"
-          style={{ animationDelay: '80ms', display: 'flex', flexDirection: 'column', gap: 20 }}
-        >
-
-          {/* Card wrapper */}
-          <div
-            style={{
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-xl)',
-              padding: '28px 28px',
-              boxShadow: 'var(--shadow-sm)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 20,
-            }}
-          >
-            {/* Company Name */}
-            <div>
-              <label className="label" htmlFor="input-company-name">
-                Company Name <span style={{ color: 'var(--risk-high)' }}>*</span>
-              </label>
-              <input
-                id="input-company-name"
-                type="text"
-                value={form.company_name}
-                onChange={(e) => updateField('company_name', e.target.value)}
-                placeholder="e.g. QuickHire Solutions"
-                required
-                className="input-field"
-              />
-            </div>
-
-            {/* Platform */}
-            <div>
-              <label className="label" htmlFor="input-platform">
-                Platform <span style={{ color: 'var(--risk-high)' }}>*</span>
-              </label>
-              <select
-                id="input-platform"
-                value={form.platform}
-                onChange={(e) => updateField('platform', e.target.value)}
-                className="input-field"
-                style={{ cursor: 'pointer' }}
-              >
-                {PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="label" htmlFor="input-description">Description</label>
-              <textarea
-                id="input-description"
-                value={form.description}
-                onChange={(e) => updateField('description', e.target.value)}
-                placeholder="Describe your experience with this company…"
-                rows={4}
-                className="input-field"
-                style={{ resize: 'none', lineHeight: 1.6 }}
-              />
-            </div>
-
-            {/* Proof Link */}
-            <div>
-              <label className="label" htmlFor="input-proof-link">Proof Link <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span></label>
-              <input
-                id="input-proof-link"
-                type="url"
-                value={form.proof_link}
-                onChange={(e) => updateField('proof_link', e.target.value)}
-                placeholder="https://…"
-                className="input-field"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="card" style={{ padding: '32px 28px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+          
+          <div>
+            <label className="section-heading" style={{ display: 'block', marginBottom: 8 }}>COMPANY NAME *</label>
+            <input
+              type="text"
+              value={form.company_name}
+              onChange={(e) => updateField('company_name', e.target.value)}
+              placeholder="e.g. TechInterns India Pvt Ltd"
+              className="input-field"
+              required
+            />
           </div>
 
-          {/* Red Flags Card */}
-          <div
-            style={{
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-xl)',
-              padding: '24px 28px',
-              boxShadow: 'var(--shadow-sm)',
-            }}
-          >
-            <p className="label" style={{ marginBottom: 14, fontSize: '0.875rem' }}>Red Flags</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {RED_FLAGS.map((flag) => {
-                const active = form.flags.includes(flag.key);
+          <div>
+            <label className="section-heading" style={{ display: 'block', marginBottom: 8 }}>LOCATION / CITY</label>
+            <input
+              type="text"
+              value={form.location}
+              onChange={(e) => updateField('location', e.target.value)}
+              placeholder="e.g. Bangalore, Remote, Pan-India"
+              className="input-field"
+            />
+          </div>
+
+          <div>
+            <label className="section-heading" style={{ display: 'block', marginBottom: 8 }}>PLATFORM / WHERE YOU FOUND IT</label>
+            <input
+              type="text"
+              value={form.platform}
+              onChange={(e) => updateField('platform', e.target.value)}
+              placeholder="e.g. LinkedIn, Internshala, WhatsApp"
+              className="input-field"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="section-heading" style={{ display: 'block', marginBottom: 8 }}>RISK LEVEL</label>
+            <select
+              value={form.risk_level}
+              onChange={(e) => updateField('risk_level', e.target.value)}
+              className="input-field"
+              style={{ cursor: 'pointer', appearance: 'none' }}
+            >
+              <option value="high">High — Charged money / stole data</option>
+              <option value="suspicious">Suspicious — Unpaid work / fake offer</option>
+              <option value="low">Low — Poor communication / other</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="section-heading" style={{ display: 'block', marginBottom: 12 }}>CATEGORIES (SELECT ALL THAT APPLY)</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {CATEGORIES.map(cat => {
+                const active = form.flags.includes(cat.id);
                 return (
                   <button
-                    key={flag.key}
+                    key={cat.id}
                     type="button"
-                    onClick={() => toggleFlag(flag.key)}
+                    onClick={() => toggleCategory(cat.id)}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: '12px 14px',
-                      border: `1.5px solid ${active ? 'var(--border-focus)' : 'var(--border)'}`,
-                      borderRadius: 'var(--radius-md)',
-                      background: active ? 'var(--brand-light)' : 'var(--bg-base)',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.15s ease',
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '8px 12px', fontSize: '0.875rem',
+                      background: active ? 'var(--brand-light)' : '#f3f1ec',
+                      border: `1px solid ${active ? 'var(--brand)' : 'transparent'}`,
+                      color: active ? 'var(--brand-dark)' : 'var(--text-primary)',
+                      borderRadius: 6, cursor: 'pointer', transition: 'all 0.15s ease'
                     }}
                   >
-                    <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{flag.emoji}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: active ? 'var(--brand)' : 'var(--text-primary)', marginBottom: 2 }}>
-                        {flag.label}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{flag.desc}</div>
-                    </div>
-                    {/* Checkbox */}
-                    <div
-                      style={{
-                        width: 18,
-                        height: 18,
-                        borderRadius: 5,
-                        background: active ? 'var(--brand)' : 'var(--bg-surface)',
-                        border: `2px solid ${active ? 'var(--brand)' : 'var(--border-strong)'}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      {active && (
-                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                          <path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      )}
-                    </div>
+                    <span>{cat.icon}</span>
+                    {cat.label}
                   </button>
                 );
               })}
             </div>
-
-            {/* Score Preview */}
-            {form.flags.length > 0 && (
-              <div
-                className="animate-fade-up"
-                style={{
-                  marginTop: 16,
-                  padding: '14px 16px',
-                  background: 'var(--bg-base)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-md)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Estimated Risk Score
-                  </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: levelColors[level] }}>
-                      {levelLabels[level]}
-                    </span>
-                    <span style={{ fontSize: '1rem', fontWeight: 800, color: levelColors[level], fontVariantNumeric: 'tabular-nums' }}>
-                      {score}/100
-                    </span>
-                  </div>
-                </div>
-                <div style={{ height: 6, borderRadius: 99, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-                  <div
-                    style={{
-                      height: '100%',
-                      borderRadius: 99,
-                      width: `${score}%`,
-                      background: levelColors[level],
-                      transition: 'width 0.4s cubic-bezier(0.22,1,0.36,1)',
-                    }}
-                  />
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Submit */}
+          <div>
+            <label className="section-heading" style={{ display: 'block', marginBottom: 8 }}>WHAT HAPPENED? *</label>
+            <textarea
+              value={form.description}
+              onChange={(e) => updateField('description', e.target.value)}
+              placeholder="Describe what happened — amounts demanded, what was promised, any contact details..."
+              className="input-field"
+              rows={5}
+              style={{ resize: 'vertical' }}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="section-heading" style={{ display: 'block', marginBottom: 8 }}>SCREENSHOTS / EVIDENCE (OPTIONAL)</label>
+            <div style={{
+              border: '2px dashed var(--border-strong)', borderRadius: 'var(--radius-md)', padding: 32,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, background: 'var(--bg-base)',
+              cursor: 'pointer'
+            }}>
+              <Paperclip size={24} color="var(--text-secondary)" />
+              <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Click to attach or drag & drop</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>PNG, JPG, PDF — max 5MB each, up to 5 files</div>
+            </div>
+          </div>
+
+          <div>
+            <label className="section-heading" style={{ display: 'block', marginBottom: 8 }}>RELEVANT LINKS (OPTIONAL)</label>
+            <input
+              type="text"
+              value={form.proof_link}
+              onChange={(e) => updateField('proof_link', e.target.value)}
+              placeholder="+ Add a link"
+              className="input-field"
+              style={{ borderStyle: 'dashed', borderWidth: 1.5, marginBottom: 4 }}
+            />
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>e.g. company website, job posting, social profile</div>
+          </div>
+
           <button
-            id="submit-report"
             type="submit"
-            disabled={!form.company_name || submitting}
+            disabled={submitting || !form.company_name}
             className="btn-primary"
-            style={{ width: '100%', height: 46, fontSize: '0.9375rem' }}
+            style={{ width: '100%', height: 48, fontSize: '1rem', marginTop: 8 }}
           >
-            {submitting ? <Loader2 size={18} className="animate-spin" /> : <><Send size={15} /> Submit Report</>}
+            {submitting ? <Loader2 size={18} className="animate-spin" /> : 'Submit report'}
           </button>
+
         </form>
       </div>
     </div>

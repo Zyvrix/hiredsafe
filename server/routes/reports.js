@@ -31,6 +31,8 @@ router.get("/", async (req, res) => {
   // Sorting
   if (sort === "highest_risk") {
     query = query.order("risk_score", { ascending: false });
+  } else if (sort === "most_upvoted") {
+    query = query.order("upvotes", { ascending: false });
   } else if (sort === "most_reported") {
     query = query.order("report_count", { ascending: false });
   } else {
@@ -70,7 +72,7 @@ router.get("/:id", async (req, res) => {
    Body: { company_name, platform, description, proof_link, flags, force }
    ─────────────────────────────────────────── */
 router.post("/", async (req, res) => {
-  const { company_name, platform, description, proof_link, flags, force } =
+  const { company_name, location, platform, description, proof_link, flags, force } =
     req.body;
 
   // Validation
@@ -139,15 +141,20 @@ router.post("/", async (req, res) => {
   const safeFlags = flags || [];
   const { score, level } = calculateScore(safeFlags, false);
   
+  // Generate secret code
+  const secret_code = "IS-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+
   const newReport = {
     company_name,
+    location: location || "",
     platform,
     description: description || "",
     proof_link: proof_link || "",
     flags: safeFlags,
     risk_score: score,
     risk_level: level,
-    report_count: 1
+    report_count: 1,
+    secret_code
   };
 
   const { data: insertedData, error: insertError } = await supabase
@@ -161,7 +168,77 @@ router.post("/", async (req, res) => {
     return res.status(500).json({ error: "Failed to create report" });
   }
 
-  res.status(201).json({ data: insertedData });
+  res.status(201).json({ data: insertedData, secret_code });
+});
+
+/* ───────────────────────────────────────────
+   POST /api/reports/:id/upvote
+   ─────────────────────────────────────────── */
+router.post("/:id/upvote", async (req, res) => {
+  const { data: report, error: fetchError } = await supabase
+    .from("reports")
+    .select("upvotes")
+    .eq("id", req.params.id)
+    .single();
+
+  if (fetchError || !report) return res.status(404).json({ error: "Report not found" });
+
+  const { data, error } = await supabase
+    .from("reports")
+    .update({ upvotes: report.upvotes + 1 })
+    .eq("id", req.params.id)
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: "Failed to upvote" });
+  res.json({ data });
+});
+
+/* ───────────────────────────────────────────
+   POST /api/reports/verify-code
+   Body: { secret_code }
+   ─────────────────────────────────────────── */
+router.post("/verify-code", async (req, res) => {
+  const { secret_code } = req.body;
+  if (!secret_code) return res.status(400).json({ error: "Secret code is required" });
+
+  const { data, error } = await supabase
+    .from("reports")
+    .select("*")
+    .eq("secret_code", secret_code)
+    .maybeSingle();
+
+  if (error || !data) return res.status(404).json({ error: "Invalid secret code or report not found" });
+  res.json({ data });
+});
+
+/* ───────────────────────────────────────────
+   DELETE /api/reports/:id
+   Body: { secret_code }
+   ─────────────────────────────────────────── */
+router.delete("/:id", async (req, res) => {
+  const { secret_code } = req.body;
+  if (!secret_code) return res.status(400).json({ error: "Secret code is required" });
+
+  // Verify
+  const { data: report, error: fetchError } = await supabase
+    .from("reports")
+    .select("secret_code")
+    .eq("id", req.params.id)
+    .single();
+
+  if (fetchError || !report || report.secret_code !== secret_code) {
+    return res.status(403).json({ error: "Invalid secret code" });
+  }
+
+  // Delete
+  const { error } = await supabase
+    .from("reports")
+    .delete()
+    .eq("id", req.params.id);
+
+  if (error) return res.status(500).json({ error: "Failed to delete" });
+  res.json({ success: true });
 });
 
 module.exports = router;

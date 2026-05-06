@@ -10,9 +10,8 @@ export default function Navbar() {
         position: 'sticky',
         top: 0,
         zIndex: 50,
-        background: 'rgba(8, 12, 24, 0.8)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
+        background: 'var(--bg-base)',
+        borderBottom: '1px solid var(--border)',
         borderBottom: '1px solid var(--border)',
         boxShadow: '0 1px 0 rgba(99,102,241,0.08)',
       }}
@@ -48,36 +47,33 @@ export default function Navbar() {
                 color: 'var(--text-primary)',
               }}
             >
-              Hire<span style={{ color: 'var(--brand)' }}>Safe</span>
+              HireD<span style={{ color: 'var(--brand)' }}>Safe</span>
             </span>
           </Link>
 
           {/* Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Link
-              to="/"
-              id="nav-home"
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              onClick={() => document.dispatchEvent(new Event('openManageReport'))}
               className="btn-ghost"
               style={{
-                fontSize: '0.8125rem',
-                fontWeight: pathname === '/' ? 600 : 500,
-                color: pathname === '/' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                background: pathname === '/' ? 'var(--bg-muted)' : 'transparent',
-                borderColor: pathname === '/' ? 'var(--border-strong)' : 'var(--border)',
-                padding: '7px 14px',
-                textDecoration: 'none',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                border: '1px solid transparent',
+                background: 'transparent',
+                padding: '8px 16px',
               }}
             >
-              Dashboard
-            </Link>
+              Manage Report
+            </button>
             <Link
               to="/report"
               id="nav-report"
               className="btn-primary"
-              style={{ fontSize: '0.8125rem', padding: '7px 16px', textDecoration: 'none' }}
+              style={{ fontSize: '0.875rem', padding: '8px 20px', textDecoration: 'none' }}
             >
-              <Plus size={15} strokeWidth={2.5} />
-              Report Scam
+              + Report
             </Link>
           </div>
         </div>

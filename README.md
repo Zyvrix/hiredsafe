@@ -1,4 +1,4 @@
-# 🛡️ HireSafe – Fake Internship Detection Platform
+# 🛡️ HireDSafe – Fake Internship Detection Platform
 
 A smart, modern platform to **report**, **search**, and **verify** companies to detect fake internship and job postings. Features an intelligent risk scoring system based on structured red-flag data.
 

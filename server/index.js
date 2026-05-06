@@ -20,5 +20,5 @@ app.get("/api/health", (_req, res) => {
 
 // Start
 app.listen(PORT, () => {
-  console.log(`\n  🛡️  HireSafe API running → http://localhost:${PORT}\n`);
+  console.log(`\n  🛡️  HireDSafe API running → http://localhost:${PORT}\n`);
 });

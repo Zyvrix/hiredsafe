@@ -17,11 +17,14 @@
  */
 
 const FLAG_WEIGHTS = {
-  asked_for_money: 40,
+  upfront_payment: 40,
   fake_offer_letter: 20,
-  no_interview: 15,
-  unpaid_work: 10,
   data_theft: 15,
+  no_pay_ghosted: 15,
+  training_fee_scam: 30,
+  phishing_malware: 30,
+  fake_company: 50,
+  other: 5,
 };
 
 const MULTIPLE_REPORTS_BONUS = 15;
