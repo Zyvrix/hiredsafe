@@ -1,10 +1,10 @@
 export default function RiskBadge({ level, score }) {
   const config = {
     low: {
-      label: 'Low Risk',
-      background: 'var(--risk-low-bg)',
-      color: 'var(--risk-low)',
-      borderColor: 'var(--risk-low-border)',
+      label: 'Safe',
+      background: 'var(--risk-safe-bg)',
+      color: 'var(--risk-safe)',
+      borderColor: 'var(--risk-safe-border)',
     },
     suspicious: {
       label: 'Suspicious',
@@ -30,15 +30,18 @@ export default function RiskBadge({ level, score }) {
           background: c.background,
           color: c.color,
           borderColor: c.borderColor,
+          padding: '4px 12px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+          fontSize: '0.6875rem'
         }}
       >
         <span
           style={{
-            width: 6,
-            height: 6,
+            width: 5,
+            height: 5,
             borderRadius: '50%',
             background: c.color,
-            animation: level === 'high' ? 'pulse-dot 2s ease-in-out infinite' : 'none',
             flexShrink: 0,
           }}
         />
@@ -47,13 +50,16 @@ export default function RiskBadge({ level, score }) {
       {score !== undefined && (
         <span
           style={{
-            fontSize: '0.75rem',
+            fontSize: '0.8125rem',
             fontWeight: 700,
             color: c.color,
             fontVariantNumeric: 'tabular-nums',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4
           }}
         >
-          {score}
+          {score}/100
         </span>
       )}
     </div>

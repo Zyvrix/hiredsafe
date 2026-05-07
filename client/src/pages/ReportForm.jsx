@@ -1,24 +1,32 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, AlertTriangle, CheckCircle, Copy, Shield } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle, Copy, Shield, UploadCloud } from 'lucide-react';
 import { createReport } from '../services/api';
+import { useToast } from '../components/Toast';
+import { motion } from 'framer-motion';
 
 const CATEGORIES = [
-  { id: 'fake_offer_letter', label: 'Fake offer letter', icon: '📄' },
-  { id: 'upfront_payment', label: 'Upfront payment', icon: '💸' },
-  { id: 'data_theft', label: 'Data theft', icon: '🔓' },
-  { id: 'no_pay_ghosted', label: 'No pay / ghosted', icon: '🚫' },
-  { id: 'training_fee_scam', label: 'Training fee scam', icon: '📚' },
-  { id: 'phishing_malware', label: 'Phishing / malware', icon: '🎣' },
-  { id: 'fake_company', label: 'Fake company', icon: '🏢' },
-  { id: 'other', label: 'Other', icon: '⚠️' }
+  { id: 'fake_offer_letter', label: 'Fake offer letter' },
+  { id: 'upfront_payment', label: 'Upfront payment' },
+  { id: 'data_theft', label: 'Data theft' },
+  { id: 'no_pay_ghosted', label: 'No pay / ghosted' },
+  { id: 'training_fee_scam', label: 'Training fee scam' },
+  { id: 'phishing_malware', label: 'Phishing / malware' },
+  { id: 'fake_company', label: 'Fake company' },
+  { id: 'other', label: 'Other' }
+];
+
+const PLATFORMS = [
+  'LinkedIn', 'Internshala', 'Naukri', 'Indeed', 'WhatsApp', 'Telegram', 'Direct Email', 'Other'
 ];
 
 export default function ReportForm() {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [form, setForm] = useState({
-    company_name: '', location: '', platform: '',
+    company_name: '', location: '', platform: 'LinkedIn',
     risk_level: 'high', description: '', proof_link: '', flags: [],
+    anonymous: true
   });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -35,14 +43,19 @@ export default function ReportForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (form.flags.length === 0) {
+      addToast({ type: 'error', title: 'Category required', message: 'Please select at least one category tag.' });
+      return;
+    }
     setSubmitting(true);
     try {
       const { secret_code } = await createReport(form, true);
       setSecretCode(secret_code);
       setSuccess(true);
+      window.scrollTo(0, 0);
     } catch (err) {
       console.error('Submit error:', err);
-      alert('Failed to submit report. Please try again.');
+      addToast({ type: 'error', title: 'Submission failed', message: 'Failed to submit report. Please try again.' });
     } finally {
       setSubmitting(false);
     }
@@ -50,158 +63,182 @@ export default function ReportForm() {
 
   const copyCode = () => {
     navigator.clipboard.writeText(secretCode);
-    alert('Code copied to clipboard!');
+    addToast({ type: 'success', title: 'Copied', message: 'Secret code copied to clipboard!' });
   };
 
   if (success) {
     return (
       <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <div className="card animate-scale-pop" style={{ textAlign: 'center', padding: '48px 40px', maxWidth: 460, width: '100%' }}>
+        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="card" style={{ textAlign: 'center', padding: '48px 40px', maxWidth: 460, width: '100%' }}>
           <div style={{
             width: 64, height: 64, borderRadius: '50%',
-            background: 'var(--brand-light)', border: '1px solid var(--brand)',
+            background: 'var(--risk-safe-bg)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 20px',
           }}>
-            <CheckCircle size={28} color="var(--brand)" />
+            <CheckCircle size={28} color="var(--risk-safe)" />
           </div>
-          <h2 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
-            Report submitted
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: '-0.02em' }}>
+            Report Submitted
           </h2>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: 28 }}>
-            Your report is now live and helping protect others.
+          <p style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)', marginBottom: 32 }}>
+            Your report is now live. Thank you for helping protect the community.
           </p>
 
           {/* Secret code */}
           <div style={{
-            background: 'var(--bg-muted)', border: '1px solid var(--border-strong)',
-            borderRadius: 8, padding: 20, marginBottom: 28, textAlign: 'left',
+            background: 'var(--bg-muted)', border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md)', padding: 20, marginBottom: 32, textAlign: 'left',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem', marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--risk-suspicious)', fontWeight: 600, fontSize: '0.8125rem', marginBottom: 8 }}>
               <AlertTriangle size={15} /> Save this code
             </div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.5 }}>
-              This is the only way to manage your report later. We can't recover it.
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.5 }}>
+              This is the only way to edit or delete your report later. We cannot recover it if lost.
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
               <div style={{
-                flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border-strong)',
-                padding: '10px 16px', borderRadius: 6,
-                fontSize: '1.2rem', fontWeight: 700, color: 'var(--brand)',
+                flex: 1, background: 'var(--bg-surface)', border: '1px solid var(--border-strong)',
+                padding: '10px 16px', borderRadius: 'var(--radius-sm)',
+                fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary)',
                 letterSpacing: '2px', textAlign: 'center', fontFamily: 'monospace',
               }}>
                 {secretCode}
               </div>
-              <button onClick={copyCode} className="btn-ghost" style={{ padding: '0 14px' }}>
+              <button onClick={copyCode} className="btn-secondary" style={{ padding: '0 16px' }}>
                 <Copy size={16} />
               </button>
             </div>
           </div>
 
-          <button onClick={() => navigate('/')} className="btn-primary" style={{ width: '100%' }}>
-            Back to dashboard
+          <button onClick={() => navigate('/')} className="btn-primary" style={{ width: '100%', height: 44 }}>
+            Return to Dashboard
           </button>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   return (
     <div style={{ minHeight: '100vh', padding: '48px 24px 80px', display: 'flex', justifyContent: 'center' }}>
-      <div style={{ maxWidth: 560, width: '100%' }}>
-
-        <h1 style={{
-          fontFamily: "'Space Grotesk', sans-serif",
-          fontSize: '1.75rem', fontWeight: 800,
-          color: 'var(--text-primary)', marginBottom: 8,
-          letterSpacing: '-0.03em',
-        }}>
-          Report a company
-        </h1>
-        <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: 32 }}>
-          Help protect the community. Your identity stays anonymous.
-        </p>
-
-        {/* Warning */}
-        <div style={{
-          background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)',
-          borderRadius: 'var(--radius-md)', padding: '14px 18px', marginBottom: 28,
-          display: 'flex', gap: 12,
-        }}>
-          <AlertTriangle size={18} color="#f59e0b" style={{ flexShrink: 0, marginTop: 2 }} />
-          <div>
-            <span style={{ fontWeight: 600, color: '#f59e0b', fontSize: '0.85rem' }}>
-              You'll get a secret code after submitting
-            </span>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.5 }}>
-              Save it — it's the only way to edit or delete your report later.
-            </p>
-          </div>
+      <div style={{ maxWidth: 640, width: '100%' }}>
+        
+        <div style={{ marginBottom: 32 }}>
+          <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: '-0.03em' }}>
+            Report a Scam
+          </h1>
+          <p style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>
+            Submit details about fraudulent companies. Your identity remains completely anonymous.
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+        <form onSubmit={handleSubmit} className="card" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <Field label="Company Name" required>
+                <input type="text" value={form.company_name} onChange={(e) => updateField('company_name', e.target.value)}
+                  placeholder="e.g. Acme Corp" className="input-field" required />
+              </Field>
+            </div>
+            
+            <div style={{ gridColumn: '1 / -1', '@media (min-width: 640px)': { gridColumn: 'span 1' } }}>
+              <Field label="Platform Source" required>
+                <select value={form.platform} onChange={(e) => updateField('platform', e.target.value)} className="input-field">
+                  {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </Field>
+            </div>
 
-          <Field label="Company name" required>
-            <input type="text" value={form.company_name} onChange={(e) => updateField('company_name', e.target.value)}
-              placeholder="e.g. QuickHire Solutions Pvt Ltd" className="input-field" required />
+            <div style={{ gridColumn: '1 / -1', '@media (min-width: 640px)': { gridColumn: 'span 1' } }}>
+              <Field label="Location" sublabel="City or Remote">
+                <input type="text" value={form.location} onChange={(e) => updateField('location', e.target.value)}
+                  placeholder="e.g. Bangalore" className="input-field" />
+              </Field>
+            </div>
+          </div>
+
+          <div className="divider" />
+
+          <Field label="Risk Level" required>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+              {[
+                { id: 'low', label: 'Safe', desc: 'Legit but poor communication' },
+                { id: 'suspicious', label: 'Suspicious', desc: 'Unpaid test tasks, ghosting' },
+                { id: 'high', label: 'High Risk', desc: 'Asked for money, data theft' }
+              ].map(level => (
+                <button
+                  key={level.id} type="button"
+                  onClick={() => updateField('risk_level', level.id)}
+                  style={{
+                    padding: '12px', borderRadius: 'var(--radius-md)', textAlign: 'left',
+                    border: `1px solid ${form.risk_level === level.id ? 'var(--primary)' : 'var(--border)'}`,
+                    background: form.risk_level === level.id ? 'var(--primary-light)' : 'var(--bg-surface)',
+                    cursor: 'pointer', transition: 'all 0.15s'
+                  }}
+                >
+                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{level.label}</div>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>{level.desc}</div>
+                </button>
+              ))}
+            </div>
           </Field>
 
-          <Field label="Location / City">
-            <input type="text" value={form.location} onChange={(e) => updateField('location', e.target.value)}
-              placeholder="e.g. Bangalore, Remote, Pan-India" className="input-field" />
-          </Field>
-
-          <Field label="Platform" required>
-            <input type="text" value={form.platform} onChange={(e) => updateField('platform', e.target.value)}
-              placeholder="e.g. LinkedIn, Internshala, WhatsApp" className="input-field" required />
-          </Field>
-
-          <Field label="Severity">
-            <select value={form.risk_level} onChange={(e) => updateField('risk_level', e.target.value)}
-              className="input-field" style={{ cursor: 'pointer' }}>
-              <option value="high">High — Charged money / stole data</option>
-              <option value="suspicious">Suspicious — Unpaid work / fake offer</option>
-              <option value="low">Low — Poor communication / other</option>
-            </select>
-          </Field>
-
-          <Field label="Categories">
+          <Field label="Categories" sublabel="Select all that apply" required>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {CATEGORIES.map(cat => {
                 const active = form.flags.includes(cat.id);
                 return (
                   <button key={cat.id} type="button" onClick={() => toggleCategory(cat.id)}
                     style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '7px 12px', fontSize: '0.825rem',
-                      background: active ? 'var(--brand-light)' : 'var(--bg-muted)',
-                      border: `1px solid ${active ? 'var(--brand)' : 'var(--border-strong)'}`,
-                      color: active ? 'var(--brand)' : 'var(--text-secondary)',
-                      borderRadius: 6, cursor: 'pointer', transition: 'all 0.15s',
-                      fontWeight: active ? 600 : 500,
+                      padding: '6px 12px', fontSize: '0.8125rem',
+                      background: active ? 'var(--text-primary)' : 'var(--bg-muted)',
+                      border: '1px solid transparent',
+                      color: active ? 'var(--bg-primary)' : 'var(--text-secondary)',
+                      borderRadius: 'var(--radius-full)', cursor: 'pointer', transition: 'all 0.15s',
+                      fontWeight: 500,
                     }}>
-                    <span>{cat.icon}</span> {cat.label}
+                    {cat.label}
                   </button>
                 );
               })}
             </div>
           </Field>
 
-          <Field label="What happened?" required>
+          <div className="divider" />
+
+          <Field label="Detailed Description" required>
             <textarea value={form.description} onChange={(e) => updateField('description', e.target.value)}
-              placeholder="Describe amounts demanded, what was promised, contact details..."
-              className="input-field" rows={5} style={{ resize: 'vertical' }} required />
+              placeholder="Provide specific details: names used, email addresses, amounts requested, timeline of events..."
+              className="input-field" rows={5} required />
           </Field>
 
-          <Field label="Evidence link" sublabel="optional">
-            <input type="text" value={form.proof_link} onChange={(e) => updateField('proof_link', e.target.value)}
-              placeholder="https://..." className="input-field" />
+          <Field label="Evidence Link" sublabel="Drive link, screenshot URL, etc.">
+            <div style={{ position: 'relative' }}>
+              <input type="url" value={form.proof_link} onChange={(e) => updateField('proof_link', e.target.value)}
+                placeholder="https://" className="input-field" style={{ paddingLeft: 40 }} />
+              <UploadCloud size={16} color="var(--text-muted)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
+            </div>
           </Field>
 
-          <button type="submit" disabled={submitting || !form.company_name} className="btn-primary"
-            style={{ width: '100%', height: 48, fontSize: '0.95rem', marginTop: 8 }}>
-            {submitting ? <Loader2 size={18} className="animate-spin" /> : <><Shield size={16} /> Submit report</>}
-          </button>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', marginTop: 8 }}>
+            <input 
+              type="checkbox" 
+              checked={form.anonymous} 
+              onChange={(e) => updateField('anonymous', e.target.checked)}
+              style={{ width: 16, height: 16, accentColor: 'var(--primary)' }}
+            />
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              Post this report anonymously
+            </span>
+          </label>
+
+          <div style={{ marginTop: 8 }}>
+            <button type="submit" disabled={submitting || !form.company_name} className="btn-primary"
+              style={{ width: '100%', height: 48, fontSize: '1rem' }}>
+              {submitting ? <Loader2 size={18} className="animate-spin" /> : <><Shield size={16} /> Submit Report</>}
+            </button>
+          </div>
 
         </form>
       </div>
@@ -212,14 +249,12 @@ export default function ReportForm() {
 function Field({ label, sublabel, required, children }) {
   return (
     <div>
-      <label style={{
-        fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.08em',
-        color: 'var(--text-muted)', textTransform: 'uppercase',
-        display: 'block', marginBottom: 8,
-      }}>
-        {label} {required && <span style={{ color: 'var(--risk-high)' }}>*</span>}
-        {sublabel && <span style={{ fontWeight: 400, letterSpacing: 0, textTransform: 'none', marginLeft: 6 }}>({sublabel})</span>}
-      </label>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+        <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+          {label} {required && <span style={{ color: 'var(--risk-high)' }}>*</span>}
+        </label>
+        {sublabel && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{sublabel}</span>}
+      </div>
       {children}
     </div>
   );

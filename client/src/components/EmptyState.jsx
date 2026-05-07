@@ -10,41 +10,42 @@ export default function EmptyState({ searchActive }) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '80px 24px',
+        padding: '64px 24px',
         textAlign: 'center',
+        background: 'var(--bg-surface)',
+        border: '1px dashed var(--border-strong)',
+        borderRadius: 'var(--radius-lg)',
       }}
     >
       <div
         style={{
-          width: 64,
-          height: 64,
+          width: 56,
+          height: 56,
           borderRadius: 16,
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border)',
+          background: 'var(--bg-muted)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: 20,
-          boxShadow: 'var(--shadow-sm)',
+          marginBottom: 16,
         }}
       >
-        <SearchX size={28} color="var(--text-muted)" />
+        <SearchX size={24} color="var(--text-muted)" />
       </div>
 
-      <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: '-0.02em' }}>
-        {searchActive ? 'No results found' : 'No reports yet'}
+      <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
+        {searchActive ? 'No results found' : 'The coast is clear'}
       </h3>
 
-      <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', maxWidth: 320, lineHeight: 1.65, marginBottom: 24 }}>
+      <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', maxWidth: 300, lineHeight: 1.5, marginBottom: 20 }}>
         {searchActive
-          ? 'Try a different search term or adjust your filters.'
-          : 'Be the first to report a suspicious company and help protect others.'}
+          ? 'Try adjusting your search or filters to find what you are looking for.'
+          : 'No scams have been reported yet. Help protect others by submitting the first report.'}
       </p>
 
       {!searchActive && (
-        <Link to="/report" className="btn-primary" style={{ textDecoration: 'none' }}>
+        <Link to="/report" className="btn-secondary" style={{ textDecoration: 'none' }}>
           <PlusCircle size={15} />
-          Report a Scam
+          Report a Company
         </Link>
       )}
     </div>
