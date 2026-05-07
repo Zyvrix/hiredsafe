@@ -1,9 +1,26 @@
 import axios from 'axios';
 
+let baseURL = import.meta.env.VITE_API_URL || '/api';
+// Strip trailing slashes
+baseURL = baseURL.replace(/\/+$/, '');
+// Ensure it explicitly targets the /api route for production URLs
+if (import.meta.env.VITE_API_URL && !baseURL.endsWith('/api')) {
+  baseURL += '/api';
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL,
   headers: { 'Content-Type': 'application/json' },
 });
+
+// Add interceptor for global error logging
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error(`[API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}`, error.response?.data || error.message);
+    return Promise.reject(error);
+  }
+);
 
 export async function getReports(params = {}) {
   const { data } = await api.get('/reports', { params });
