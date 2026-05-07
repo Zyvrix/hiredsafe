@@ -69,7 +69,8 @@ export default function CompanyCard({ report, index = 0 }) {
       setUpvoted(false);
       setUpvotes(p => p - 1);
       const errMsg = err.response?.data?.error || err.message;
-      addToast({ type: 'error', title: 'Failed to upvote', message: `Error: ${errMsg}` });
+      const url = err.config?.url || 'unknown url';
+      addToast({ type: 'error', title: 'Failed to upvote', message: `[${url}] Error: ${errMsg}` });
     }
   };
 
@@ -84,7 +85,8 @@ export default function CompanyCard({ report, index = 0 }) {
     } catch (err) {
       console.error(err);
       const errMsg = err.response?.data?.error || err.message;
-      addToast({ type: 'error', title: 'Failed to post', message: `Error: ${errMsg}` });
+      const url = err.config?.url || 'unknown url';
+      addToast({ type: 'error', title: 'Failed to post', message: `[${url}] Error: ${errMsg}` });
     } finally {
       setPosting(false);
     }

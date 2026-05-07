@@ -181,7 +181,10 @@ router.post("/:id/upvote", async (req, res) => {
     .eq("id", req.params.id)
     .single();
 
-  if (fetchError || !report) return res.status(404).json({ error: "Report not found" });
+  if (fetchError || !report) {
+    console.error("Fetch report error for upvote:", fetchError, "ID:", req.params.id);
+    return res.status(404).json({ error: "Report not found or invalid ID" });
+  }
 
   const currentUpvotes = report.upvotes || 0;
 
@@ -260,7 +263,10 @@ router.post("/:id/comment", async (req, res) => {
     .eq("id", req.params.id)
     .single();
 
-  if (fetchError || !report) return res.status(404).json({ error: "Report not found" });
+  if (fetchError || !report) {
+    console.error("Fetch report error for comment:", fetchError, "ID:", req.params.id);
+    return res.status(404).json({ error: "Report not found or invalid ID" });
+  }
 
   // If comments column does not exist or is null, initialize it
   const currentComments = report.comments || [];
