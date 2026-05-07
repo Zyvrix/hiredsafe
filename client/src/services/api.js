@@ -25,6 +25,11 @@ export async function upvoteReport(id) {
   return data;
 }
 
+export async function addComment(id, text, author) {
+  const { data } = await api.post(`/reports/${id}/comment`, { text, author });
+  return data;
+}
+
 export async function verifySecretCode(secret_code) {
   const { data } = await api.post('/reports/verify-code', { secret_code });
   return data;

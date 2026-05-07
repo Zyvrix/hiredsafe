@@ -53,6 +53,10 @@ function timeAgo(dateStr) {
 export default function CompanyCard({ report, index = 0 }) {
   const [upvotes, setUpvotes] = useState(report.upvotes || 0);
   const [upvoted, setUpvoted] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState(report.comments || []);
+  const [commentText, setCommentText] = useState('');
+  const [posting, setPosting] = useState(false);
   const { addToast } = useToast();
 
   const handleUpvote = async () => {
@@ -65,6 +69,22 @@ export default function CompanyCard({ report, index = 0 }) {
       setUpvoted(false);
       setUpvotes(p => p - 1);
       addToast({ type: 'error', title: 'Failed to upvote', message: 'Please try again.' });
+    }
+  };
+
+  const handlePostComment = async (e) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    setPosting(true);
+    try {
+      const { addComment } = await import('../services/api');
+      const data = await addComment(report.id, commentText, "Anonymous");
+      setComments(data.comments || []);
+      setCommentText('');
+    } catch (err) {
+      addToast({ type: 'error', title: 'Failed to post', message: 'Could not add comment. Ensure database has comments column.' });
+    } finally {
+      setPosting(false);
     }
   };
 
@@ -221,25 +241,83 @@ export default function CompanyCard({ report, index = 0 }) {
                 <Clock size={11} /> {timeAgo(report.created_at)}
               </span>
 
-              {/* Right side actions */}
-              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <button
-                  onClick={handleShare}
-                  title="Share report"
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 28, height: 28, borderRadius: 'var(--radius-sm)',
-                    border: 'none', background: 'transparent',
-                    color: 'var(--text-muted)', cursor: 'pointer',
-                    transition: 'all 0.15s',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-muted)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-                >
-                  <Share2 size={13} />
-                </button>
-              </div>
             </div>
+
+            {/* Actions Row */}
+            <div className="divider" style={{ margin: '16px 0 12px' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button 
+                onClick={() => setShowComments(!showComments)}
+                style={{ 
+                  display: 'flex', alignItems: 'center', gap: 6, 
+                  background: 'none', border: 'none', 
+                  color: 'var(--text-muted)', fontSize: '0.8125rem', fontWeight: 500,
+                  cursor: 'pointer', transition: 'color 0.15s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+              >
+                <MessageCircle size={14} /> 
+                {comments.length} comment{comments.length !== 1 ? 's' : ''}
+              </button>
+              
+              <button
+                onClick={handleShare}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: 'none', border: 'none',
+                  color: 'var(--text-muted)', fontSize: '0.8125rem', fontWeight: 500,
+                  cursor: 'pointer', transition: 'color 0.15s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+              >
+                <Share2 size={14} /> Share
+              </button>
+            </div>
+
+            {/* Comments Section */}
+            {showComments && (
+              <div style={{ marginTop: 16, background: 'var(--bg-surface)', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                {comments.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20 }}>
+                    {comments.map((c) => (
+                      <div key={c.id} style={{ display: 'flex', gap: 10 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                          {c.author.charAt(0)}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{c.author}</span>
+                            <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>{timeAgo(c.created_at)}</span>
+                          </div>
+                          <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', margin: '4px 0 0', lineHeight: 1.5 }}>
+                            {c.text}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 16 }}>No comments yet. Be the first to share your thoughts.</p>
+                )}
+                
+                <form onSubmit={handlePostComment} style={{ display: 'flex', gap: 8 }}>
+                  <input 
+                    type="text" 
+                    placeholder="Add a comment..." 
+                    className="input-field" 
+                    value={commentText}
+                    onChange={e => setCommentText(e.target.value)}
+                    style={{ flex: 1, padding: '10px 14px', fontSize: '0.875rem', borderRadius: 'var(--radius-md)', height: 40 }}
+                    disabled={posting}
+                  />
+                  <button type="submit" disabled={posting || !commentText.trim()} className="btn-secondary" style={{ padding: '0 16px', height: 40 }}>
+                    {posting ? '...' : 'Post'}
+                  </button>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       </div>

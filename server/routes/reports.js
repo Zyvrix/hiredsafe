@@ -183,9 +183,11 @@ router.post("/:id/upvote", async (req, res) => {
 
   if (fetchError || !report) return res.status(404).json({ error: "Report not found" });
 
+  const currentUpvotes = report.upvotes || 0;
+
   const { data, error } = await supabase
     .from("reports")
-    .update({ upvotes: report.upvotes + 1 })
+    .update({ upvotes: currentUpvotes + 1 })
     .eq("id", req.params.id)
     .select()
     .single();
@@ -239,6 +241,47 @@ router.delete("/:id", async (req, res) => {
 
   if (error) return res.status(500).json({ error: "Failed to delete" });
   res.json({ success: true });
+});
+
+/* ───────────────────────────────────────────
+   POST /api/reports/:id/comment
+   Body: { text, author }
+   ─────────────────────────────────────────── */
+router.post("/:id/comment", async (req, res) => {
+  const { text, author } = req.body;
+  if (!text) return res.status(400).json({ error: "Comment text is required" });
+
+  const { data: report, error: fetchError } = await supabase
+    .from("reports")
+    .select("comments")
+    .eq("id", req.params.id)
+    .single();
+
+  if (fetchError || !report) return res.status(404).json({ error: "Report not found" });
+
+  // If comments column does not exist or is null, initialize it
+  const currentComments = report.comments || [];
+  
+  const newComment = {
+    id: "cm-" + Math.random().toString(36).substr(2, 9),
+    author: author || "Anonymous",
+    text,
+    created_at: new Date().toISOString()
+  };
+
+  const { data, error } = await supabase
+    .from("reports")
+    .update({ comments: [...currentComments, newComment] })
+    .eq("id", req.params.id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Failed to add comment:", error);
+    return res.status(500).json({ error: "Failed to add comment. Please ensure a 'comments' JSONB column exists." });
+  }
+
+  res.json({ data });
 });
 
 module.exports = router;
