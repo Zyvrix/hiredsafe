@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, ChevronUp, Clock, ExternalLink, Share2, MessageCircle, Tag } from 'lucide-react';
-import { upvoteReport } from '../services/api';
+import { upvoteReport, addComment } from '../services/api';
 import { useToast } from './Toast';
 import { motion } from 'framer-motion';
 
@@ -65,10 +65,11 @@ export default function CompanyCard({ report, index = 0 }) {
     setUpvotes(p => p + 1);
     try {
       await upvoteReport(report.id);
-    } catch {
+    } catch (err) {
       setUpvoted(false);
       setUpvotes(p => p - 1);
-      addToast({ type: 'error', title: 'Failed to upvote', message: 'Please try again.' });
+      const errMsg = err.response?.data?.error || err.message;
+      addToast({ type: 'error', title: 'Failed to upvote', message: `Error: ${errMsg}` });
     }
   };
 
@@ -77,12 +78,13 @@ export default function CompanyCard({ report, index = 0 }) {
     if (!commentText.trim()) return;
     setPosting(true);
     try {
-      const { addComment } = await import('../services/api');
       const data = await addComment(report.id, commentText, "Anonymous");
       setComments(data.comments || []);
       setCommentText('');
     } catch (err) {
-      addToast({ type: 'error', title: 'Failed to post', message: 'Could not add comment. Ensure database has comments column.' });
+      console.error(err);
+      const errMsg = err.response?.data?.error || err.message;
+      addToast({ type: 'error', title: 'Failed to post', message: `Error: ${errMsg}` });
     } finally {
       setPosting(false);
     }

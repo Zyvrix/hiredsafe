@@ -22,12 +22,12 @@ export async function createReport(report, force = false) {
 
 export async function upvoteReport(id) {
   const { data } = await api.post(`/reports/${id}/upvote`);
-  return data;
+  return data.data || data;
 }
 
 export async function addComment(id, text, author) {
   const { data } = await api.post(`/reports/${id}/comment`, { text, author });
-  return data;
+  return data.data || data;
 }
 
 export async function verifySecretCode(secret_code) {

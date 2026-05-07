@@ -192,7 +192,10 @@ router.post("/:id/upvote", async (req, res) => {
     .select()
     .single();
 
-  if (error) return res.status(500).json({ error: "Failed to upvote" });
+  if (error) {
+    console.error("Upvote error:", error);
+    return res.status(500).json({ error: "Failed to upvote" });
+  }
   res.json({ data });
 });
 
