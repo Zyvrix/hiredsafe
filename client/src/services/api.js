@@ -1,60 +1,149 @@
-import axios from 'axios';
+import axios from "axios";
 
-let baseURL = import.meta.env.VITE_API_URL || '/api';
-// Strip trailing slashes
-baseURL = baseURL.replace(/\/+$/, '');
-// Ensure it explicitly targets the /api route for production URLs
-if (import.meta.env.VITE_API_URL && !baseURL.endsWith('/api')) {
-  baseURL += '/api';
-}
+/* =========================================
+   BASE URL
+========================================= */
+
+const baseURL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000";
+
+/* =========================================
+   AXIOS INSTANCE
+========================================= */
 
 const api = axios.create({
   baseURL,
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-// Add interceptor for global error logging
+/* =========================================
+   GLOBAL ERROR LOGGER
+========================================= */
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error(`[API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}`, error.response?.data || error.message);
+    console.error(
+      `[API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
+      error.response?.data || error.message
+    );
+
     return Promise.reject(error);
   }
 );
 
+/* =========================================
+   GET ALL REPORTS
+========================================= */
+
 export async function getReports(params = {}) {
-  const { data } = await api.get('/reports', { params });
+  const { data } = await api.get(
+    "/api/reports",
+    { params }
+  );
+
   return data;
 }
+
+/* =========================================
+   GET SINGLE REPORT
+========================================= */
 
 export async function getReport(id) {
-  const { data } = await api.get(`/reports/${id}`);
+  const { data } = await api.get(
+    `/api/reports/${id}`
+  );
+
   return data;
 }
 
-export async function createReport(report, force = false) {
-  const { data, secret_code } = await api.post('/reports', { ...report, force });
-  return { data, secret_code };
+/* =========================================
+   CREATE REPORT
+========================================= */
+
+export async function createReport(
+  report,
+  force = false
+) {
+  const response = await api.post(
+    "/api/reports",
+    {
+      ...report,
+      force,
+    }
+  );
+
+  return response.data;
 }
+
+/* =========================================
+   UPVOTE REPORT
+========================================= */
 
 export async function upvoteReport(id) {
-  const { data } = await api.post(`/reports/${id}/upvote`);
-  return data.data || data;
+  const response = await api.post(
+    `/api/reports/${id}/upvote`
+  );
+
+  return response.data;
 }
 
-export async function addComment(id, text, author) {
-  const { data } = await api.post(`/reports/${id}/comment`, { text, author });
-  return data.data || data;
+/* =========================================
+   ADD COMMENT
+========================================= */
+
+export async function addComment(
+  id,
+  text,
+  author
+) {
+  const response = await api.post(
+    `/api/reports/${id}/comment`,
+    {
+      text,
+      author,
+    }
+  );
+
+  return response.data;
 }
 
-export async function verifySecretCode(secret_code) {
-  const { data } = await api.post('/reports/verify-code', { secret_code });
-  return data;
+/* =========================================
+   VERIFY SECRET CODE
+========================================= */
+
+export async function verifySecretCode(
+  secret_code
+) {
+  const response = await api.post(
+    "/api/reports/verify-code",
+    {
+      secret_code,
+    }
+  );
+
+  return response.data;
 }
 
-export async function deleteReport(id, secret_code) {
-  const { data } = await api.delete(`/reports/${id}`, { data: { secret_code } });
-  return data;
+/* =========================================
+   DELETE REPORT
+========================================= */
+
+export async function deleteReport(
+  id,
+  secret_code
+) {
+  const response = await api.delete(
+    `/api/reports/${id}`,
+    {
+      data: { secret_code },
+    }
+  );
+
+  return response.data;
 }
 
 export default api;
