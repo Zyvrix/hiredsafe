@@ -11,7 +11,7 @@ export default function ThemeProvider({ children }) {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('hiredsafe-theme');
       if (stored) return stored;
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      return 'light'; // Always default to light mode initially
     }
     return 'light';
   });
