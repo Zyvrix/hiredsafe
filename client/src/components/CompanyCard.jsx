@@ -52,7 +52,14 @@ function timeAgo(dateStr) {
 
 export default function CompanyCard({ report, index = 0 }) {
   const [upvotes, setUpvotes] = useState(report.upvotes || 0);
-  const [upvoted, setUpvoted] = useState(false);
+  const [upvoted, setUpvoted] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('hiresafe_upvotes') || '[]');
+      return saved.includes(report.id);
+    } catch {
+      return false;
+    }
+  });
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState(report.comments || []);
   const [commentText, setCommentText] = useState('');
@@ -63,11 +70,30 @@ export default function CompanyCard({ report, index = 0 }) {
     if (upvoted) return;
     setUpvoted(true);
     setUpvotes(p => p + 1);
+
+    // Persist to localStorage immediately
+    try {
+      const saved = JSON.parse(localStorage.getItem('hiresafe_upvotes') || '[]');
+      if (!saved.includes(report.id)) {
+        saved.push(report.id);
+        localStorage.setItem('hiresafe_upvotes', JSON.stringify(saved));
+      }
+    } catch (e) {
+      console.error('Failed to save upvote state', e);
+    }
+
     try {
       await upvoteReport(report.id);
     } catch (err) {
       setUpvoted(false);
       setUpvotes(p => p - 1);
+      
+      // Revert localStorage on failure
+      try {
+        const saved = JSON.parse(localStorage.getItem('hiresafe_upvotes') || '[]');
+        localStorage.setItem('hiresafe_upvotes', JSON.stringify(saved.filter(id => id !== report.id)));
+      } catch (e) {}
+
       const errMsg = err.response?.data?.error || err.message;
       const url = err.config?.url || 'unknown url';
       addToast({ type: 'error', title: 'Failed to upvote', message: `[${url}] Error: ${errMsg}` });
