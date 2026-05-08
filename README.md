@@ -13,7 +13,9 @@ A smart, modern platform to **report**, **search**, and **verify** companies to 
 - 🏷️ **Filters & Sorting** – Filter by risk level, platform, sort by most reported
 - 📊 **Trending Scams** – Highlights the most dangerous flagged companies
 - ⚠️ **Duplicate Detection** – Warns if a company has already been reported, merges reports to increase risk score
-- 🎨 **Premium Dark UI** – Glassmorphism, animations, skeleton loaders
+- 🎨 **Dark Cybersecurity UI** – Modern, professional design built with Tailwind CSS featuring glassmorphism, animations, and skeleton loaders
+- 💬 **Community Engagement** – Upvote and comment on reports to warn others
+- 🛡️ **Secure Reporting** – Delete or manage your reports securely using secret codes, backed by Supabase Row Level Security (RLS)
 
 ---
 
@@ -98,6 +100,10 @@ hiresafe/
 | `GET` | `/api/reports` | All reports (supports `?search=`, `?risk=`, `?platform=`, `?sort=`) |
 | `GET` | `/api/reports/:id` | Single report by ID |
 | `POST` | `/api/reports` | Create/update report. Returns `409` on duplicate (unless `force: true`) |
+| `POST` | `/api/reports/:id/upvote` | Upvote a specific report |
+| `POST` | `/api/reports/:id/comment` | Add a comment to a specific report |
+| `POST` | `/api/reports/verify-code` | Verify the secret code for a report |
+| `DELETE` | `/api/reports/:id` | Delete a report using its secret code |
 | `GET` | `/api/health` | Health check |
 
 ---
@@ -122,13 +128,25 @@ hiresafe/
 
 ---
 
-## 🔮 Future Enhancements (Supabase)
+## 🗄️ Database & Security
 
-To connect to Supabase:
-1. Create a Supabase project
-2. Run the SQL migration in `server/.env.example`
-3. Add your `SUPABASE_URL` and `SUPABASE_ANON_KEY` to `server/.env`
-4. Replace the in-memory store in `routes/reports.js` with Supabase client calls
+This project uses **Supabase** for robust data persistence.
+- **Row Level Security (RLS)** is configured to protect data integrity, ensuring reports cannot be arbitrarily modified or deleted without the appropriate `secret_code`.
+- Environment variables (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) are securely managed via `.env`.
+
+To set up locally:
+1. Create a Supabase project.
+2. Run the SQL schema to create the `reports` table.
+3. Configure RLS policies to secure access.
+4. Add your `SUPABASE_URL` and `SUPABASE_ANON_KEY` to `server/.env`.
+
+---
+
+## 🌍 Deployment
+
+The platform is structured for easy deployment to modern cloud providers:
+- **Frontend**: Designed to be hosted on [Vercel](https://vercel.com/) for fast, edge-network delivery. Ensure the `VITE_API_URL` environment variable is set to your backend URL.
+- **Backend**: Designed to be hosted on [Render](https://render.com/) or similar platforms running the Express.js server. Configure the relevant environment variables (Supabase credentials) and start commands.
 
 ---
 
