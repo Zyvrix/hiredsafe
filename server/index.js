@@ -4,6 +4,7 @@ const express = require("express");
 const cors = require("cors");
 
 const reportsRouter = require("./routes/reports");
+const aiRouter = require("./routes/ai");
 
 const app = express();
 
@@ -62,6 +63,12 @@ app.get("/api/health", (_req, res) => {
 ======================================== */
 
 app.use("/api/reports", reportsRouter);
+
+/* ========================================
+   AI RESEARCH ROUTES
+======================================== */
+
+app.use("/api/ai", aiRouter);
 
 /* ========================================
    404 HANDLER

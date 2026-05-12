@@ -4,9 +4,11 @@ import axios from "axios";
    BASE URL
 ========================================= */
 
-const baseURL =
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:5000";
+// Strip trailing /api and slashes from VITE_API_URL so all route paths
+// can consistently use the /api prefix without doubling.
+let baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+baseURL = baseURL.replace(/\/+$/, "");        // remove trailing slashes
+baseURL = baseURL.replace(/\/api$/, "");       // remove trailing /api
 
 /* =========================================
    AXIOS INSTANCE
@@ -141,6 +143,19 @@ export async function deleteReport(
     {
       data: { secret_code },
     }
+  );
+
+  return response.data;
+}
+
+/* =========================================
+   AI COMPANY RESEARCH
+========================================= */
+
+export async function aiResearchCompany(company_name) {
+  const response = await api.post(
+    "/api/ai/research",
+    { company_name }
   );
 
   return response.data;

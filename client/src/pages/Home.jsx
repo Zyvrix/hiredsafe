@@ -4,7 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import CompanyCard from '../components/CompanyCard';
 import SkeletonCard from '../components/SkeletonCard';
 import EmptyState from '../components/EmptyState';
-import { getReports } from '../services/api';
+import AIResearchPanel, { AIResearchSkeleton } from '../components/AIResearchPanel';
+import { getReports, aiResearchCompany } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Home() {
@@ -15,6 +16,11 @@ export default function Home() {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({ risk: 'all', sort: 'newest' });
   const [stats, setStats] = useState({ totalReports: 0, totalCompanies: 0, totalUpvotes: 0 });
+
+  // AI research state
+  const [aiResult, setAiResult] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
 
   useEffect(() => {
     getReports().then((result) => {
@@ -43,7 +49,32 @@ export default function Home() {
     else if (filters.sort === 'highest_risk') filtered.sort((a, b) => b.risk_score - a.risk_score);
     else filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     setReports(filtered);
+
+    // Clear AI result when search changes
+    setAiResult(null);
+    setAiError(null);
   }, [search, filters, allData]);
+
+  // AI research handler
+  const handleAIResearch = async (companyName) => {
+    if (!companyName || companyName.trim().length < 2) return;
+    setAiLoading(true);
+    setAiError(null);
+    setAiResult(null);
+    try {
+      const response = await aiResearchCompany(companyName.trim());
+      if (response.success) {
+        setAiResult(response.data);
+      } else {
+        setAiError(response.error || 'AI research failed.');
+      }
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'AI research failed.';
+      setAiError(msg);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -226,19 +257,64 @@ export default function Home() {
             </div>
           </div>
 
+          {/* AI Research Results */}
+          <AnimatePresence mode="wait">
+            {aiLoading && (
+              <div style={{ marginBottom: 24 }}>
+                <AIResearchSkeleton />
+              </div>
+            )}
+            {aiResult && !aiLoading && (
+              <div style={{ marginBottom: 24 }}>
+                <AIResearchPanel data={aiResult} onClose={() => setAiResult(null)} />
+              </div>
+            )}
+            {aiError && !aiLoading && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="card"
+                style={{
+                  padding: '20px 24px',
+                  marginBottom: 24,
+                  borderLeft: '3px solid var(--risk-high)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                }}
+              >
+                <AlertTriangle size={18} color="var(--risk-high)" />
+                <div>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
+                    AI Research Failed
+                  </div>
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                    {aiError}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Feed */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {loading ? (
               Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-            ) : reports.length === 0 ? (
-              <EmptyState searchActive={search.length > 0 || filters.risk !== 'all'} />
-            ) : (
+            ) : reports.length === 0 && !aiLoading && !aiResult && !aiError ? (
+              <EmptyState
+                searchActive={search.length > 0 || filters.risk !== 'all'}
+                searchQuery={search}
+                onAIResearch={handleAIResearch}
+                aiLoading={aiLoading}
+              />
+            ) : reports.length > 0 ? (
               <AnimatePresence mode="popLayout">
                 {reports.map((report, i) => (
                   <CompanyCard key={report.id} report={report} index={i} />
                 ))}
               </AnimatePresence>
-            )}
+            ) : null}
           </div>
 
         </div>
@@ -246,3 +322,4 @@ export default function Home() {
     </div>
   );
 }
+
