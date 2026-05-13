@@ -530,25 +530,43 @@ export default function AIResearchPanel({ data, onClose }) {
                 marginTop: 8,
               }}
             >
-              {data.sources.map((src, i) => (
-                <span
-                  key={i}
-                  style={{
-                    padding: '3px 10px',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'var(--bg-muted)',
-                    fontSize: '0.6875rem',
-                    fontWeight: 500,
-                    color: 'var(--text-secondary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <ExternalLink size={10} />
-                  {src}
-                </span>
-              ))}
+              {data.sources.map((src, i) => {
+                const searchQuery = encodeURIComponent(`${data.company_name} ${src}`);
+                const searchUrl = `https://www.google.com/search?q=${searchQuery}`;
+                return (
+                  <a
+                    key={i}
+                    href={searchUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: '3px 10px',
+                      borderRadius: 'var(--radius-full)',
+                      background: 'var(--bg-muted)',
+                      fontSize: '0.6875rem',
+                      fontWeight: 500,
+                      color: 'var(--text-secondary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      textDecoration: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'var(--primary-light)';
+                      e.currentTarget.style.color = 'var(--primary)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'var(--bg-muted)';
+                      e.currentTarget.style.color = 'var(--text-secondary)';
+                    }}
+                  >
+                    <ExternalLink size={10} />
+                    {src}
+                  </a>
+                );
+              })}
             </div>
           </div>
         )}

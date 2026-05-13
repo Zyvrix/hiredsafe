@@ -111,25 +111,39 @@ Return ONLY a JSON object with this EXACT structure:
   "sources": ["types of sources you considered, e.g. 'Company website', 'LinkedIn', 'Glassdoor'"]
 }`;
 
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
+    /* ── Helper: call Gemini with retries ── */
+    const MAX_RETRIES = 2;
+    let analysis = null;
 
-    let analysis;
-    try {
-      analysis = JSON.parse(text);
-    } catch (parseError) {
-      // Try to extract JSON from the response if it's wrapped in markdown
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        analysis = JSON.parse(jsonMatch[0]);
-      } else {
-        console.error("[AI] Failed to parse Gemini response:", text);
-        return res.status(500).json({
-          success: false,
-          error: "AI returned an invalid response. Please try again.",
-        });
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const text = response.text();
+
+        try {
+          analysis = JSON.parse(text);
+        } catch (parseError) {
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            analysis = JSON.parse(jsonMatch[0]);
+          }
+        }
+
+        if (analysis) break; // success
+      } catch (geminiErr) {
+        console.warn(`[AI] Gemini attempt ${attempt + 1} failed:`, geminiErr.message);
+        if (attempt < MAX_RETRIES) {
+          await new Promise((r) => setTimeout(r, 1000 * (attempt + 1))); // backoff
+        }
       }
+    }
+
+    if (!analysis) {
+      return res.status(500).json({
+        success: false,
+        error: "AI could not analyze this company right now. Please try again in a moment.",
+      });
     }
 
     // Validate and sanitize the response
@@ -158,7 +172,6 @@ Return ONLY a JSON object with this EXACT structure:
 
     if (insertError) {
       console.warn("[AI] Failed to cache result:", insertError.message);
-      // Don't fail the request — still return the result
     }
 
     console.log(`[AI] Research complete for "${normalizedName}" → ${sanitized.risk_level} (${sanitized.risk_score}/100)`);

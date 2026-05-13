@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Search, ArrowRight, ShieldCheck, AlertTriangle, CheckCircle2, TrendingUp } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, ArrowRight, ShieldCheck, AlertTriangle, CheckCircle2, TrendingUp, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import CompanyCard from '../components/CompanyCard';
 import SkeletonCard from '../components/SkeletonCard';
@@ -21,6 +21,17 @@ export default function Home() {
   const [aiResult, setAiResult] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(null);
+
+  // Wake up the backend on first visit (Render free tier goes to sleep)
+  const warmedUp = useRef(false);
+  useEffect(() => {
+    if (!warmedUp.current) {
+      warmedUp.current = true;
+      const apiBase = import.meta.env.VITE_API_URL || '';
+      const base = apiBase.replace(/\/+$/, '').replace(/\/api$/, '');
+      fetch(`${base}/api/health`).catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     getReports().then((result) => {
@@ -255,6 +266,49 @@ export default function Home() {
                 <option value="highest_risk">Highest Risk</option>
               </select>
             </div>
+
+            {/* Inline AI Research button — shows inside search bar when no results */}
+            {search.trim().length >= 2 && reports.length === 0 && !loading && !aiLoading && !aiResult && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  background: 'var(--primary-light)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--primary-border)',
+                }}
+              >
+                <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                  Not found in our database — let AI research <strong style={{ color: 'var(--text-primary)' }}>"{search}"</strong> for you
+                </span>
+                <button
+                  onClick={() => handleAIResearch(search)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '7px 16px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--primary)',
+                    color: '#fff',
+                    border: 'none',
+                    fontSize: '0.8125rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <Sparkles size={14} />
+                  Research with AI
+                </button>
+              </motion.div>
+            )}
           </div>
 
           {/* AI Research Results */}
