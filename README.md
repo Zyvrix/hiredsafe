@@ -5,6 +5,7 @@ A smart, modern platform to **report**, **search**, and **verify** companies to 
 ![Tech Stack](https://img.shields.io/badge/React-Vite-blue) ![Backend](https://img.shields.io/badge/Node.js-Express-green) ![Style](https://img.shields.io/badge/Tailwind_CSS-v4-purple)
 
 ---
+Live Link: https://hiredsafe.vercel.app
 
 ## ✨ Features
 
